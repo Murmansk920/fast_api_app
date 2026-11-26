@@ -30,7 +30,8 @@ htmlcov/
 test/.cache/
 
 # 前端（如果 frontend 是独立的 Node 项目）
-frontend/
+frontend/Dockerfile
+frontend/nginx.conf
 
 # 编辑器/系统
 .idea/
