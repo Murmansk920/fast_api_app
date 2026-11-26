@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>任务管理系统</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb;
+    color: #333;
+    min-height: 100vh;
+  }
+  button { cursor: pointer; font-family: inherit; }
+
+  /* ---------- 通用 ---------- */
+  .hidden { display: none !important; }
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #e8ecf3;
+    color: #333;
+    transition: 0.2s;
+  }
+  .btn:hover { background: #dce2ec; }
+  .btn.primary { background: #4a6cf7; color: #fff; }
+  .btn.primary:hover { background: #3a5ae0; }
+  .btn.danger { background: #fdeaea; color: #e04a4a; }
+  .btn.danger:hover { background: #fbdcdc; }
+  .btn.text { background: transparent; color: #4a6cf7; padding: 4px 8px; }
+  .btn.text.danger { color: #e04a4a; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  input, textarea, select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d6dbe6;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: 0.2s;
+    background: #fff;
+  }
+  input:focus, textarea:focus, select:focus { border-color: #4a6cf7; }
+
+  /* ---------- 登录/注册 ---------- */
+  .auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 20px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  }
+  .auth-card h2 { text-align: center; margin-bottom: 24px; color: #222; }
+  .auth-card .field { margin-bottom: 16px; }
+  .auth-card .btn.primary { width: 100%; padding: 11px; font-size: 15px; }
+  .auth-foot {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 14px;
+    color: #888;
+  }
+  .auth-foot a { color: #4a6cf7; cursor: pointer; text-decoration: none; }
+  .auth-foot a:hover { text-decoration: underline; }
+
+  /* ---------- 主布局 ---------- */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 24px;
+    height: 60px;
+    background: #fff;
+    border-bottom: 1px solid #e8ecf3;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo { font-size: 18px; font-weight: 700; color: #222; white-space: nowrap; }
+  .nav { display: flex; gap: 6px; flex: 1; }
+  .nav-item {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 15px;
+    background: transparent;
+    border: none;
+    color: #555;
+  }
+  .nav-item:hover { background: #f0f3fa; }
+  .nav-item.active { background: #eaf0ff; color: #4a6cf7; font-weight: 600; }
+
+  .main { max-width: 1000px; margin: 0 auto; padding: 24px; }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .toolbar h2 { font-size: 20px; }
+  .toolbar-actions { display: flex; gap: 10px; }
+
+  .alert {
+    background: #eef4ff;
+    color: #3a5ae0;
+    border: 1px solid #d6e2ff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  /* ---------- 表格 ---------- */
+  .table-wrap {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(20,30,60,0.05);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f2f7;
+  }
+  th { background: #fafbfe; color: #777; font-weight: 600; font-size: 13px; }
+  tbody tr:hover { background: #fafbfe; }
+  tbody tr:last-child td { border-bottom: none; }
+  .empty { text-align: center; color: #aaa; padding: 40px 0; }
+  .actions { display: flex; gap: 4px; }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tag.pending { background: #eef1f6; color: #666; }
+  .tag.doing   { background: #fff4e5; color: #e08a00; }
+  .tag.done    { background: #e7f7ec; color: #1f9d55; }
+
+  /* ---------- 弹窗 ---------- */
+  .modal-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal {
+    width: 100%;
+    max-width: 480px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    animation: pop 0.18s ease-out;
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal h3 { margin-bottom: 18px; font-size: 18px; }
+  .modal .field { margin-bottom: 14px; }
+  .modal label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+  .modal .modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  /* ---------- Toast ---------- */
+  #toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .toast {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    animation: slideDown 0.25s ease-out;
+    max-width: 90vw;
+  }
+  .toast.success { background: #1f9d55; }
+  .toast.error   { background: #e04a4a; }
+  .toast.warning { background: #e0a500; }
+  .toast.info    { background: #4a6cf7; }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .header { padding: 0 12px; gap: 12px; }
+    .logo { font-size: 15px; }
+    .main { padding: 14px; }
+    .toolbar h2 { font-size: 17px; }
+    th, td { padding: 10px 8px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toast 容器 -->
+<div id="toast-container"></div>
+
+<!-- ================= 登录页 ================= -->
+<div id="page-login" class="auth-page hidden">
+  <div class="auth-card">
+    <h2>登录</h2>
+    <div class="field">
+      <input id="login-username" placeholder="用户名" autocomplete="username" />
+    </div>
+    <div class="field">
+      <input id="login-password" type="password" placeholder="密码" autocomplete="current-password" />
+    </div>
+    <button class="btn primary" id="btn-login">登录</button>
+    <div class="auth-foot">
+      还没有账号？<a data-nav="register">去注册</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 注册页 ================= -->
+<div id="page-register" class="auth-page hidden">
+  <div class="auth-card">
+    <h2>注册</h2>
+    <div class="field">
+      <input id="reg-username" placeholder="用户名" />
+    </div>
+    <div class="field">
+      <input id="reg-password" type="password" placeholder="密码" />
+    </div>
+    <div class="field">
+      <input id="reg-email" placeholder="邮箱（选填）" />
+    </div>
+    <button class="btn primary" id="btn-register">注册</button>
+    <div class="auth-foot">
+      已有账号？<a data-nav="login">去登录</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 主应用 ================= -->
+<div id="page-app" class="hidden">
+  <div class="header">
+    <div class="logo">📋 任务管理系统</div>
+    <div class="nav">
+      <button class="nav-item active" data-page="tasks">我的任务</button>
+      <button class="nav-item" data-page="users">用户管理</button>
+    </div>
+    <button class="btn danger" id="btn-logout">退出</button>
+  </div>
+
+  <div class="main">
+    <!-- 任务页 -->
+    <section id="view-tasks">
+      <div class="toolbar">
+        <h2>我的任务</h2>
+        <div class="toolbar-actions">
+          <button class="btn" id="btn-refresh-tasks">刷新</button>
+          <button class="btn primary" id="btn-new-task">+ 新建任务</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">ID</th>
+              <th>标题</th>
+              <th>描述</th>
+              <th style="width:100px">状态</th>
+              <th style="width:140px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-tasks">
+            <tr><td colspan="5" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 用户页 -->
+    <section id="view-users" class="hidden">
+      <div class="toolbar">
+        <h2>用户管理</h2>
+        <div class="toolbar-actions">
+          <button class="btn" id="btn-refresh-users">刷新</button>
+        </div>
+      </div>
+      <div class="alert">提示：用户列表接口限流 5 次/分钟，请勿频繁刷新</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">ID</th>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th style="width:140px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-users">
+            <tr><td colspan="4" class="empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ================= 通用弹窗 ================= -->
+<div id="modal-mask" class="modal-mask hidden">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+/* =====================================================================
+ *  配置 & 工具
+ * ===================================================================== */
+const API_BASE = '/api';   // ⚠️ 改成你的后端地址
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function getToken() {
+  return localStorage.getItem('access_token') || '';
+}
+function setToken(t) {
+  localStorage.setItem('access_token', t);
+}
+function clearToken() {
+  localStorage.removeItem('access_token');
+}
+
+/* ---------- Toast ---------- */
+function toast(msg, type = 'info', duration = 2500) {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  $('#toast-container').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+/* ---------- 统一请求（含 token、错误处理） ---------- */
+async function api(path, { method = 'GET', body, form } = {}) {
+  const headers = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let payload;
+  if (form) {
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    payload = form;
+  } else if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    payload = JSON.stringify(body);
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, { method, headers, body: payload });
+
+  if (res.status === 204) return null;
+
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+  if (!res.ok) {
+    // 401 自动登出
+    if (res.status === 401) {
+      clearToken();
+      showLogin();
+      throw new Error('登录已过期，请重新登录');
+    }
+    // 429 限流
+    if (res.status === 429) {
+      toast('请求过于频繁，请稍后再试', 'warning');
+      throw new Error('429');
+    }
+    // FastAPI 错误结构
+    let msg = '请求失败';
+    if (data && data.detail) {
+      msg = Array.isArray(data.detail)
+        ? data.detail.map(d => d.msg).join('；')
+        : data.detail;
+    }
+    toast(msg, 'error');
+    throw new Error(msg);
+  }
+  return data;
+}
+
+/* =====================================================================
+ *  API 封装
+ * ===================================================================== */
+const AuthAPI = {
+  login(username, password) {
+    const form = new URLSearchParams();
+    form.append('username', username);
+    form.append('password', password);
+    return api('/auth/login', { method: 'POST', form: form.toString() });
+  },
+};
+
+const UsersAPI = {
+  register(data) { return api('/users/register', { method: 'POST', body: data }); },
+  list()         { return api('/users/'); },
+  update(id, d)  { return api(`/users/user/${id}`, { method: 'PUT', body: d }); },
+  remove(id)     { return api(`/users/${id}`, { method: 'DELETE' }); },
+};
+
+const TasksAPI = {
+  list()         { return api('/tasks/'); },
+  create(data)   { return api('/tasks/', { method: 'POST', body: data }); },
+  update(id, d)  { return api(`/tasks/${id}`, { method: 'PUT', body: d }); },
+  remove(id)     { return api(`/tasks/${id}`, { method: 'DELETE' }); },
+};
+
+/* =====================================================================
+ *  页面切换
+ * ===================================================================== */
+function showPage(name) {
+  ['login', 'register', 'app'].forEach(p => {
+    $(`#page-${p}`).classList.toggle('hidden', p !== name);
+  });
+  if (name === 'app') showAppPage('tasks');
+}
+function showLogin()    { showPage('login'); }
+function showRegister() { showPage('register'); }
+
+function showAppPage(name) {
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+  $('#view-tasks').classList.toggle('hidden', name !== 'tasks');
+  $('#view-users').classList.toggle('hidden', name !== 'users');
+  if (name === 'tasks') loadTasks();
+  if (name === 'users') loadUsers();
+}
+
+/* =====================================================================
+ *  弹窗（通用）
+ * ===================================================================== */
+function openModal(html) {
+  $('#modal').innerHTML = html;
+  $('#modal-mask').classList.remove('hidden');
+}
+function closeModal() {
+  $('#modal-mask').classList.add('hidden');
+  $('#modal').innerHTML = '';
+}
+$('#modal-mask').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-mask') closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+/* =====================================================================
+ *  登录逻辑
+ * ===================================================================== */
+$('#btn-login').addEventListener('click', async () => {
+  const username = $('#login-username').value.trim();
+  const password = $('#login-password').value;
+  if (!username || !password) return toast('请输入用户名和密码', 'warning');
+
+  const btn = $('#btn-login');
+  btn.disabled = true; btn.textContent = '登录中...';
+  try {
+    const data = await AuthAPI.login(username, password);
+    setToken(data.access_token);
+    toast('登录成功', 'success');
+    $('#login-username').value = '';
+    $('#login-password').value = '';
+    showPage('app');
+  } catch {} finally {
+    btn.disabled = false; btn.textContent = '登录';
+  }
+});
+
+/* 回车登录 */
+['#login-username', '#login-password'].forEach(sel => {
+  $(sel).addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') $('#btn-login').click();
+  });
+});
+
+/* =====================================================================
+ *  注册逻辑
+ * ===================================================================== */
+$('#btn-register').addEventListener('click', async () => {
+  const username = $('#reg-username').value.trim();
+  const password = $('#reg-password').value;
+  const email = $('#reg-email').value.trim();
+  if (!username || !password) return toast('用户名和密码必填', 'warning');
+
+  const btn = $('#btn-register');
+  btn.disabled = true; btn.textContent = '注册中...';
+  try {
+    await UsersAPI.register({ username, password, email: email || undefined });
+    toast('注册成功，请登录', 'success');
+    $('#reg-username').value = '';
+    $('#reg-password').value = '';
+    $('#reg-email').value = '';
+    showLogin();
+  } catch {} finally {
+    btn.disabled = false; btn.textContent = '注册';
+  }
+});
+
+/* =====================================================================
+ *  退出 / 导航
+ * ===================================================================== */
+$('#btn-logout').addEventListener('click', () => {
+  clearToken();
+  toast('已退出登录', 'info');
+  showLogin();
+});
+
+$$('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => showAppPage(btn.dataset.page));
+});
+
+$$('[data-nav]').forEach(a => {
+  a.addEventListener('click', () => {
+    a.dataset.nav === 'login' ? showLogin() : showRegister();
+  });
+});
+
+/* =====================================================================
+ *  任务模块
+ * ===================================================================== */
+const STATUS_OPTS = [
+  { value: 'pending', label: '待办',   cls: 'pending' },
+  { value: 'doing',   label: '进行中', cls: 'doing' },
+  { value: 'done',    label: '已完成', cls: 'done' },
+];
+const statusOf = (v) => STATUS_OPTS.find(s => s.value === v) || { label: v || '-', cls: 'pending' };
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+async function loadTasks() {
+  const tbody = $('#tbody-tasks');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">加载中...</td></tr>';
+  try {
+    const list = await TasksAPI.list();
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无任务</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((t) => {
+      const st = statusOf(t.status);
+      return `<tr>
+        <td>${t.id}</td>
+        <td>${escapeHtml(t.title)}</td>
+        <td style="color:#888">${escapeHtml(t.description || '-')}</td>
+        <td><span class="tag ${st.cls}">${st.label}</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn text" data-edit-task="${t.id}">编辑</button>
+            <button class="btn text danger" data-del-task="${t.id}">删除</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // 绑定按钮
+    tbody.querySelectorAll('[data-edit-task]').forEach(b => {
+      const task = list.find(x => x.id == b.dataset.editTask);
+      b.addEventListener('click', () => openTaskDialog(task));
+    });
+    tbody.querySelectorAll('[data-del-task]').forEach(b => {
+      const id = b.dataset.delTask;
+      const task = list.find(x => x.id == id);
+      b.addEventListener('click', () => deleteTask(task));
+    });
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">加载失败</td></tr>';
+  }
+}
+
+function openTaskDialog(task) {
+  const isEdit = !!task;
+  const opts = STATUS_OPTS.map(s =>
+    `<option value="${s.value}" ${task && task.status === s.value ? 'selected' : ''}>${s.label}</option>`
+  ).join('');
+
+  openModal(`
+    <h3>${isEdit ? '编辑任务' : '新建任务'}</h3>
+    <div class="field">
+      <label>标题 <span style="color:#e04a4a">*</span></label>
+      <input id="task-title" value="${isEdit ? escapeHtml(task.title) : ''}" placeholder="请输入任务标题" />
+    </div>
+    <div class="field">
+      <label>描述</label>
+      <textarea id="task-desc" rows="3" placeholder="请输入描述">${isEdit ? escapeHtml(task.description || '') : ''}</textarea>
+    </div>
+    <div class="field">
+      <label>状态</label>
+      <select id="task-status">${opts}</select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" id="task-save">保存</button>
+    </div>
+  `);
+
+  $('#task-title').focus();
+  $('#task-save').addEventListener('click', async () => {
+    const title = $('#task-title').value.trim();
+    if (!title) return toast('标题必填', 'warning');
+    const payload = {
+      title,
+      description: $('#task-desc').value.trim() || undefined,
+      status: $('#task-status').value,
+    };
+    const btn = $('#task-save');
+    btn.disabled = true; btn.textContent = '保存中...';
+    try {
+      if (isEdit) {
+        await TasksAPI.update(task.id, payload);
+        toast('修改成功', 'success');
+      } else {
+        await TasksAPI.create(payload);
+        toast('创建成功', 'success');
+      }
+      closeModal();
+      loadTasks();
+    } catch {} finally {
+      btn.disabled = false; btn.textContent = '保存';
+    }
+  });
+}
+
+async function deleteTask(task) {
+  if (!confirm(`确定删除任务「${task.title}」吗？`)) return;
+  try {
+    await TasksAPI.remove(task.id);
+    toast('删除成功', 'success');
+    loadTasks();
+  } catch {}
+}
+
+$('#btn-new-task').addEventListener('click', () => openTaskDialog(null));
+$('#btn-refresh-tasks').addEventListener('click', loadTasks);
+
+/* =====================================================================
+ *  用户模块
+ * ===================================================================== */
+async function loadUsers() {
+  const tbody = $('#tbody-users');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty">加载中...</td></tr>';
+  try {
+    const list = await UsersAPI.list();
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">暂无用户</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((u) => `
+      <tr>
+        <td>${u.id}</td>
+        <td>${escapeHtml(u.username)}</td>
+        <td style="color:#888">${escapeHtml(u.email || '-')}</td>
+        <td>
+          <div class="actions">
+            <button class="btn text" data-edit-user="${u.id}">编辑</button>
+            <button class="btn text danger" data-del-user="${u.id}">删除</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('[data-edit-user]').forEach(b => {
+      const user = list.find(x => x.id == b.dataset.editUser);
+      b.addEventListener('click', () => openUserDialog(user));
+    });
+    tbody.querySelectorAll('[data-del-user]').forEach(b => {
+      const user = list.find(x => x.id == b.dataset.delUser);
+      b.addEventListener('click', () => deleteUser(user));
+    });
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">加载失败</td></tr>';
+  }
+}
+
+function openUserDialog(user) {
+  openModal(`
+    <h3>编辑用户</h3>
+    <div class="field">
+      <label>用户名</label>
+      <input id="user-username" value="${escapeHtml(user.username)}" />
+    </div>
+    <div class="field">
+      <label>邮箱</label>
+      <input id="user-email" value="${escapeHtml(user.email || '')}" />
+    </div>
+    <div class="field">
+      <label>新密码（留空不修改）</label>
+      <input id="user-password" type="password" placeholder="不修改请留空" />
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" id="user-save">保存</button>
+    </div>
+  `);
+
+  $('#user-save').addEventListener('click', async () => {
+    const payload = {
+      username: $('#user-username').value.trim(),
+      email: $('#user-email').value.trim() || undefined,
+    };
+    const pwd = $('#user-password').value;
+    if (pwd) payload.password = pwd;
+
+    const btn = $('#user-save');
+    btn.disabled = true; btn.textContent = '保存中...';
+    try {
+      await UsersAPI.update(user.id, payload);
+      toast('修改成功', 'success');
+      closeModal();
+      loadUsers();
+    } catch {} finally {
+      btn.disabled = false; btn.textContent = '保存';
+    }
+  });
+}
+
+async function deleteUser(user) {
+  if (!confirm(`确定删除用户「${user.username}」吗？`)) return;
+  try {
+    await UsersAPI.remove(user.id);
+    toast('删除成功', 'success');
+    loadUsers();
+  } catch {}
+}
+
+$('#btn-refresh-users').addEventListener('click', loadUsers);
+
+/* =====================================================================
+ *  启动
+ * ===================================================================== */
+(function init() {
+  // 把 closeModal 挂到 window，供弹窗内联 onclick 调用
+  window.closeModal = closeModal;
+
+  if (getToken()) {
+    showPage('app');
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>

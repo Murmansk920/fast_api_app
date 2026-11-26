@@ -1,0 +1,42 @@
+# Python 虚拟环境（必忽略，体积巨大，靠 requirements.txt 重建）
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 环境变量（含密钥，绝不能传）
+.env
+.env.*
+!.env.example
+
+# 数据库文件/数据（看 data 目录里存什么，若是本地测试数据通常不传）
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Alembic 迁移产生的本地 sqlite（如果迁移用 sqlite）
+migrations/versions/*.pyc
+
+# 日志
+*.log
+logs/
+
+# 测试与覆盖率
+.coverage
+htmlcov/
+test/.cache/
+
+# 前端（如果 frontend 是独立的 Node 项目）
+frontend/
+
+# 编辑器/系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docker 本地覆盖（可选）
+docker-compose.override.yml
